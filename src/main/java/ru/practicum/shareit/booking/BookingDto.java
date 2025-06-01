@@ -1,22 +1,15 @@
 package ru.practicum.shareit.booking;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * TODO Sprint add-bookings.
- */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Booking {
-    private Long id;
-    @NotNull
-    private Long bookerId;
-    @NotNull
+public class BookingDto {
     private Long itemId;
+    private Long bookerId;
     private String start;
     private String end;
     private BookingStatus status;
