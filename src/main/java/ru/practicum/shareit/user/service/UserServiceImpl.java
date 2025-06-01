@@ -12,7 +12,7 @@ import ru.practicum.shareit.user.storage.UserStorage;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UserServiceImpl implements UserService{
+public class UserServiceImpl implements UserService {
     private final UserStorage userStorage;
 
     @Override
