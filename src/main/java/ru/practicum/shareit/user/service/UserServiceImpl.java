@@ -1,7 +1,6 @@
 package ru.practicum.shareit.user.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.ConflictException;
 import ru.practicum.shareit.user.User;
@@ -9,7 +8,6 @@ import ru.practicum.shareit.user.UserDto;
 import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.storage.UserStorage;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -41,8 +39,7 @@ public class UserServiceImpl implements UserService {
 
     private void validateUserEmail(UserDto userDto) {
         if (userStorage.getAll().stream().anyMatch(u -> u.getEmail().equals(userDto.getEmail()))) {
-            log.warn("Пользователь с email {} уже существует", userDto.getEmail());
-            throw new ConflictException("Пользователь с таким email уже существует");
+            throw new ConflictException(String.format("Пользователь с email %s уже существует", userDto.getEmail()));
         }
     }
 }

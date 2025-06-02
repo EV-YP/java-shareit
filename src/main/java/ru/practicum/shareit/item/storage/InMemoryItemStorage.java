@@ -1,6 +1,5 @@
 package ru.practicum.shareit.item.storage;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.practicum.shareit.exception.CustomValidationException;
 import ru.practicum.shareit.exception.NotFoundException;
@@ -11,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Component
 public class InMemoryItemStorage implements ItemStorage {
     private final Map<Long, Item> items = new HashMap<>();
@@ -66,12 +64,10 @@ public class InMemoryItemStorage implements ItemStorage {
     @Override
     public void validateItem(Long id) {
         if (id == null) {
-            log.error("Id должен быть указан");
             throw new CustomValidationException("Id должен быть указан");
         }
 
         if (!items.containsKey(id)) {
-            log.error("Предмет с id = {} не найден", id);
             throw new NotFoundException(String.format("Предмет с id = %d не найден", id));
         }
     }
@@ -79,7 +75,6 @@ public class InMemoryItemStorage implements ItemStorage {
     @Override
     public void validateOwner(Long id, Long userId) {
         if (!userId.equals(items.get(id).getOwnerId())) {
-            log.error("Пользователь с id = {} не является владельцем предмета с id = {}", userId, id);
             throw new CustomValidationException(
                     String.format("Пользователь с id = %d не является владельцем предмета с id = %d", userId, id));
         }
