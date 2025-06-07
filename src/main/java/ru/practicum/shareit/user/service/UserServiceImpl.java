@@ -15,14 +15,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto createUser(UserDto userDto) {
-        validateUserEmail(userDto);
+        validateUserEmail(null, userDto);
         User user = UserMapper.toUser(userDto);
         return UserMapper.toUserDto(userStorage.save(user));
     }
 
     @Override
     public UserDto updateUser(Long id, UserDto userDto) {
-        validateUserEmail(userDto);
+        userStorage.validateUser(id);
+        validateUserEmail(id, userDto);
         User user = UserMapper.toUser(userDto);
         return UserMapper.toUserDto(userStorage.update(id, user));
     }
@@ -37,8 +38,13 @@ public class UserServiceImpl implements UserService {
         return UserMapper.toUserDto(userStorage.getUser(userId));
     }
 
-    private void validateUserEmail(UserDto userDto) {
-        if (userStorage.getAll().stream().anyMatch(u -> u.getEmail().equals(userDto.getEmail()))) {
+    private void validateUserEmail(Long userId, UserDto userDto) {
+        if (userDto.getEmail() == null) {
+            return;
+        }
+        boolean emailBusy = userStorage.getAll().stream()
+                .anyMatch(u -> u.getEmail().equals(userDto.getEmail()) && (userId == null || !u.getId().equals(userId)));
+        if (emailBusy) {
             throw new ConflictException(String.format("Пользователь с email %s уже существует", userDto.getEmail()));
         }
     }
