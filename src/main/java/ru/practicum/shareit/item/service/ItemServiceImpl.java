@@ -73,7 +73,7 @@ public class ItemServiceImpl implements ItemService {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException(String.format("Предмет с id: %d не найден", itemId)));
         ItemWithDatesDto foundItem = ItemMapper.toItemWithDatesDto(item);
-        if(item.getOwner().getId().equals(userId)) {
+        if (item.getOwner().getId().equals(userId)) {
             foundItem.setNextBooking(getLocalDateTimeOrNull(
                     bookingRepository.findNextBookingStartDate(itemId, APPROVED, Instant.now())));
             foundItem.setLastBooking(getLocalDateTimeOrNull(
