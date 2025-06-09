@@ -8,7 +8,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ItemRequestDto {
+
     private String description;
+
     private Long requestorId;
-    private String created;
 }

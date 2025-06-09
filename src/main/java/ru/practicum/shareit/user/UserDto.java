@@ -11,9 +11,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserDto {
+
     private Long id;
+
     @NotBlank(message = "Имя пользователя не может быть пустым")
     private String name;
+
     @NotNull
     @Email(message = "Email должен быть корректным")
     private String email;

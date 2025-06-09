@@ -1,6 +1,9 @@
 package ru.practicum.shareit.item.service;
 
-import ru.practicum.shareit.item.ItemDto;
+import jakarta.validation.Valid;
+import ru.practicum.shareit.item.comment.CommentDto;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemWithDatesDto;
 
 import java.util.List;
 
@@ -9,10 +12,13 @@ public interface ItemService {
 
     ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto);
 
-    ItemDto getItem(Long itemId);
+    ItemDto getItemByIdAndOwnerId(Long itemId, Long userId);
 
-    List<ItemDto> getItemsByOwner(Long ownerId);
+    ItemWithDatesDto getItemByIdAndUserId(Long itemId, Long userId);
+
+    List<ItemWithDatesDto> getItemsByOwner(Long ownerId);
 
     List<ItemDto> searchItems(String text);
-}
 
+    CommentDto addComment(Long userId, Long itemId, @Valid CommentDto commentDto);
+}
