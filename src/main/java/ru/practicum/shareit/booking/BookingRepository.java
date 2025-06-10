@@ -12,19 +12,22 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByBookerIdOrderByStartDesc(Long bookerId);
 
-    @Query("SELECT b FROM Booking b WHERE b.item.owner.id = ?1 ORDER BY b.start DESC")
-    List<Booking> findByItemOwnerId(Long ownerId);
+    List<Booking> findByBookerIdAndStatusOrderByStartDesc(Long userId, BookingStatus status);
+
+    List<Booking> findByItemOwnerIdOrderByStartDesc(Long ownerId);
+
+    List<Booking> findByItemOwnerIdAndStatusOrderByStartDesc(Long ownerId, BookingStatus status);
 
     @Query("SELECT b.item.id, MIN(b.start) " +
-           "FROM Booking b " +
-           "WHERE b.item.id IN ?1 AND b.status = ?2 AND b.start > ?3 " +
-           "GROUP BY b.item.id")
+            "FROM Booking b " +
+            "WHERE b.item.id IN ?1 AND b.status = ?2 AND b.start > ?3 " +
+            "GROUP BY b.item.id")
     List<Object[]> findNextBookingsStartDates(List<Long> itemIds, BookingStatus status, Instant now);
 
     @Query("SELECT b.item.id, MAX(b.end) " +
-           "FROM Booking b " +
-           "WHERE b.item.id IN ?1 AND b.status = ?2 AND b.end < ?3 " +
-           "GROUP BY b.item.id")
+            "FROM Booking b " +
+            "WHERE b.item.id IN ?1 AND b.status = ?2 AND b.end < ?3 " +
+            "GROUP BY b.item.id")
     List<Object[]> findLastBookingsEndDates(List<Long> itemIds, BookingStatus status, Instant now);
 
     default Map<Long, Instant> findNextBookingStarts(List<Long> itemIds, BookingStatus status, Instant now) {
@@ -56,4 +59,5 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "WHERE b.item.id = ?1 AND b.status = ?2 AND b.end < ?3 " +
             "GROUP BY b.end")
     Instant findLastBookingEndDate(Long itemId, BookingStatus bookingStatus, Instant now);
+
 }

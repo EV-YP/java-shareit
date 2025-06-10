@@ -94,16 +94,13 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public List<BookingDto> getAllBookingsByUserId(Long userId, String state) {
         userService.getUser(userId);
-        List<Booking> bookings = bookingRepository.findByBookerIdOrderByStartDesc(userId);
-        if (bookings.isEmpty()) {
-            throw new NotFoundException("Бронирования не найдены для данного пользователя");
-        } else if (state.equals("ALL")) {
-            return bookings.stream()
+        if ("ALL".equals(state)) {
+            return bookingRepository.findByBookerIdOrderByStartDesc(userId).stream()
                     .map(BookingMapper::toBookingDto)
                     .toList();
         } else {
-            return bookings.stream()
-                    .filter(booking -> BookingState.from(state).equals(filterBookingState(booking)))
+            BookingStatus status = getBookingStatusFromBookingState(state);
+            return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, status).stream()
                     .map(BookingMapper::toBookingDto)
                     .toList();
         }
@@ -112,20 +109,12 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public List<BookingDto> getAllBookingsByItemOwnerId(Long ownerId, String state) {
         userService.getUser(ownerId);
-        List<Booking> bookings = bookingRepository.findByItemOwnerId(ownerId);
-        if (bookings.isEmpty()) {
-            throw new NotFoundException("Бронирования не найдены для данного владельца");
-        }
         if ("ALL".equals(state)) {
-            return bookings.stream()
-                    .map(BookingMapper::toBookingDto)
-                    .toList();
+            return mapBookingsToDto(bookingRepository.findByItemOwnerIdOrderByStartDesc(ownerId));
+        } else {
+            BookingStatus status = getBookingStatusFromBookingState(state);
+            return mapBookingsToDto(bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(ownerId, status));
         }
-        BookingState filterState = BookingState.from(state);
-        return bookings.stream()
-                .filter(booking -> filterState.equals(filterBookingState(booking)))
-                .map(BookingMapper::toBookingDto)
-                .toList();
     }
 
     private User getUserOrThrow(Long userId) {
@@ -138,17 +127,20 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new NotFoundException("Предмет не найден"));
     }
 
-    private static BookingState filterBookingState(Booking booking) {
-        BookingStatus status = booking.getStatus();
-        if (status == BookingStatus.WAITING) return BookingState.WAITING;
-        if (status == BookingStatus.REJECTED) return BookingState.REJECTED;
-        if (status == BookingStatus.CANCELED) return BookingState.PAST;
-        if (status == BookingStatus.APPROVED) {
-            Instant now = Instant.now();
-            if (booking.getEnd().isBefore(now)) return BookingState.PAST;
-            if (booking.getStart().isAfter(now)) return BookingState.FUTURE;
-            return BookingState.CURRENT;
-        }
-        throw new IllegalStateException("Unknown booking status: " + status);
+    private List<BookingDto> mapBookingsToDto(List<Booking> bookings) {
+        return bookings.stream()
+                .map(BookingMapper::toBookingDto)
+                .toList();
+    }
+
+    private static BookingStatus getBookingStatusFromBookingState(String state) {
+        BookingState bookingState = BookingState.from(state);
+        return switch (bookingState) {
+            case ALL -> null;
+            case CURRENT, FUTURE -> BookingStatus.APPROVED;
+            case PAST -> BookingStatus.CANCELED;
+            case WAITING -> BookingStatus.WAITING;
+            case REJECTED -> BookingStatus.REJECTED;
+        };
     }
 }
