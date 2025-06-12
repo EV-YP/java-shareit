@@ -1,4 +1,8 @@
-package ru.practicum.shareit.item;
+package ru.practicum.shareit.item.dto;
+
+import ru.practicum.shareit.item.Item;
+
+import java.util.ArrayList;
 
 public class ItemMapper {
     public static ItemDto toItemDto(Item item) {
@@ -19,5 +23,18 @@ public class ItemMapper {
         item.setDescription(dto.getDescription());
         item.setAvailable(dto.getAvailable());
         return item;
+    }
+
+    public static ItemWithDatesDto toItemWithDatesDto(Item item) {
+        if (item == null) return null;
+        ItemWithDatesDto dto = new ItemWithDatesDto();
+        dto.setId(item.getId());
+        dto.setName(item.getName());
+        dto.setDescription(item.getDescription());
+        dto.setAvailable(item.getAvailable());
+        dto.setLastBooking(null);
+        dto.setNextBooking(null);
+        dto.setComments(new ArrayList<>());
+        return dto;
     }
 }

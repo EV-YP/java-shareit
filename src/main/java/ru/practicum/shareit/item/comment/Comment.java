@@ -1,4 +1,4 @@
-package ru.practicum.shareit.booking;
+package ru.practicum.shareit.item.comment;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -11,19 +11,18 @@ import ru.practicum.shareit.user.User;
 import java.time.Instant;
 
 @Entity
-@Table(name = "bookings")
+@Table(name = "comments")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Booking {
+public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotNull
-    @ManyToOne
-    @JoinColumn(name = "booker_id", nullable = false)
-    private User booker;
+    @Column(name = "text", nullable = false)
+    private String text;
 
     @NotNull
     @ManyToOne
@@ -31,14 +30,10 @@ public class Booking {
     private Item item;
 
     @NotNull
-    @Column(name = "start_date", nullable = false)
-    private Instant start;
+    @ManyToOne
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
 
-    @NotNull
-    @Column(name = "end_date", nullable = false)
-    private Instant end;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private BookingStatus status;
+    @Column(name = "created", nullable = false)
+    private Instant created;
 }

@@ -10,11 +10,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ItemRequest {
+
     private Long id;
+
     @NotBlank
     private String description;
+
     @NotNull
     private Long requestorId;
-    @NotNull
-    private String created;
 }
