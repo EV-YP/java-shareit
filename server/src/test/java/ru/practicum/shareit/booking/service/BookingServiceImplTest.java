@@ -16,11 +16,13 @@ import ru.practicum.shareit.exception.CustomValidationException;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.Item;
 import ru.practicum.shareit.item.ItemRepository;
+import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.service.UserService;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -146,6 +148,23 @@ class BookingServiceImplTest {
     }
 
     @Test
+    void createBooking_whenUserNotFound_thenNotFoundExceptionThrown() {
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> bookingService.createBooking(userId, bookingRequestDto));
+        verify(bookingRepository, never()).save(any(Booking.class));
+    }
+
+    @Test
+    void createBooking_whenItemNotFound_thenNotFoundExceptionThrown() {
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(itemRepository.findById(itemId)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> bookingService.createBooking(userId, bookingRequestDto));
+        verify(bookingRepository, never()).save(any(Booking.class));
+    }
+
+    @Test
     void approveBooking_whenOwnerApproves_thenBookingStatusApproved() {
         when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
@@ -155,6 +174,19 @@ class BookingServiceImplTest {
 
         assertNotNull(result);
         assertEquals(BookingStatus.APPROVED, result.getStatus());
+        verify(bookingRepository, times(1)).save(any(Booking.class));
+    }
+
+    @Test
+    void approveBooking_whenOwnerRejects_thenBookingStatusRejected() {
+        when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenReturn(booking);
+
+        BookingDto result = bookingService.approveBooking(ownerId, bookingId, false);
+
+        assertNotNull(result);
+        assertEquals(BookingStatus.REJECTED, result.getStatus());
         verify(bookingRepository, times(1)).save(any(Booking.class));
     }
 
@@ -178,7 +210,58 @@ class BookingServiceImplTest {
     }
 
     @Test
+    void approveBooking_whenBookingAlreadyStarted_thenCustomValidationExceptionThrown() {
+        booking.setStart(Instant.now().minusSeconds(3600));
+        when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        assertThrows(CustomValidationException.class, () -> bookingService.approveBooking(ownerId, bookingId, true));
+        verify(bookingRepository, never()).save(any(Booking.class));
+    }
+
+    @Test
+    void approveBooking_whenItemUnavailable_thenCustomValidationExceptionThrown() {
+        item.setAvailable(false);
+        when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        assertThrows(CustomValidationException.class, () -> bookingService.approveBooking(ownerId, bookingId, true));
+        verify(bookingRepository, never()).save(any(Booking.class));
+    }
+
+    @Test
+    void approveBooking_whenBookingForOwnItem_thenCustomValidationExceptionThrown() {
+        item.setOwner(user);
+        booking.setItem(item);
+        booking.setBooker(user);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        assertThrows(CustomValidationException.class, () -> bookingService.approveBooking(userId, bookingId, true));
+        verify(bookingRepository, never()).save(any(Booking.class));
+    }
+
+    @Test
+    void approveBooking_whenUserNotFound_thenCustomValidationExceptionThrown() {
+        when(userRepository.findById(ownerId)).thenReturn(Optional.empty());
+
+        assertThrows(CustomValidationException.class, () -> bookingService.approveBooking(ownerId, bookingId, true));
+        verify(bookingRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    void approveBooking_whenBookingNotFound_thenNotFoundExceptionThrown() {
+        when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> bookingService.approveBooking(ownerId, bookingId, true));
+        verify(bookingRepository, never()).save(any(Booking.class));
+    }
+
+    @Test
     void getBookingById_whenBookingExists_thenReturnBooking() {
+        when(userService.getUser(userId)).thenReturn(null);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         BookingDto result = bookingService.getBookingById(userId, bookingId);
@@ -190,7 +273,30 @@ class BookingServiceImplTest {
     }
 
     @Test
+    void getBookingById_whenOwnerAccessesBooking_thenReturnBooking() {
+        when(userService.getUser(ownerId)).thenReturn(null);
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(itemService.getItemByIdAndOwnerId(itemId, ownerId)).thenReturn(new ItemDto());
+
+        BookingDto result = bookingService.getBookingById(ownerId, bookingId);
+
+        assertNotNull(result);
+        assertEquals(bookingId, result.getId());
+    }
+
+    @Test
+    void getBookingById_whenUnauthorizedAccess_thenNotFoundExceptionThrown() {
+        Long unauthorizedUserId = 999L;
+        when(userService.getUser(unauthorizedUserId)).thenReturn(null);
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(itemService.getItemByIdAndOwnerId(itemId, unauthorizedUserId)).thenReturn(null);
+
+        assertThrows(NotFoundException.class, () -> bookingService.getBookingById(unauthorizedUserId, bookingId));
+    }
+
+    @Test
     void getBookingById_whenBookingNotFound_thenNotFoundExceptionThrown() {
+        when(userService.getUser(userId)).thenReturn(null);
         when(bookingRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> bookingService.getBookingById(userId, 999L));
@@ -206,5 +312,71 @@ class BookingServiceImplTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(bookingId, result.getFirst().getId());
+    }
+
+    @Test
+    void getAllBookingsByUserId_whenStateWaiting_thenReturnWaitingBookings() {
+        when(userService.getUser(userId)).thenReturn(null);
+        when(bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.WAITING))
+            .thenReturn(List.of(booking));
+
+        List<BookingDto> result = bookingService.getAllBookingsByUserId(userId, BookingState.WAITING.name());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(BookingStatus.WAITING, result.getFirst().getStatus());
+    }
+
+    @Test
+    void getAllBookingsByUserId_whenStateRejected_thenReturnRejectedBookings() {
+        booking.setStatus(BookingStatus.REJECTED);
+        when(userService.getUser(userId)).thenReturn(null);
+        when(bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED))
+            .thenReturn(List.of(booking));
+
+        List<BookingDto> result = bookingService.getAllBookingsByUserId(userId, BookingState.REJECTED.name());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(BookingStatus.REJECTED, result.getFirst().getStatus());
+    }
+
+    @Test
+    void getAllBookingsByItemOwnerId_whenStateAll_thenReturnAllOwnerBookings() {
+        when(userService.getUser(ownerId)).thenReturn(null);
+        when(bookingRepository.findByItemOwnerIdOrderByStartDesc(ownerId)).thenReturn(List.of(booking));
+
+        List<BookingDto> result = bookingService.getAllBookingsByItemOwnerId(ownerId, BookingState.ALL.name());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(bookingId, result.getFirst().getId());
+    }
+
+    @Test
+    void getAllBookingsByItemOwnerId_whenStateApproved_thenReturnApprovedOwnerBookings() {
+        booking.setStatus(BookingStatus.APPROVED);
+        when(userService.getUser(ownerId)).thenReturn(null);
+        when(bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(ownerId, BookingStatus.APPROVED))
+            .thenReturn(List.of(booking));
+
+        List<BookingDto> result = bookingService.getAllBookingsByItemOwnerId(ownerId, BookingState.FUTURE.name());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(BookingStatus.APPROVED, result.getFirst().getStatus());
+    }
+
+    @Test
+    void getAllBookingsByItemOwnerId_whenStateWaiting_thenReturnWaitingOwnerBookings() {
+        when(userService.getUser(ownerId)).thenReturn(null);
+        when(bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(ownerId, BookingStatus.WAITING))
+            .thenReturn(List.of(booking));
+
+        List<BookingDto> result = bookingService.getAllBookingsByItemOwnerId(ownerId, BookingState.WAITING.name());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(BookingStatus.WAITING, result.getFirst().getStatus());
     }
 }
